@@ -1,0 +1,18 @@
+# BYDO Skill Extraction — Docker Compose
+# ----------------------------------------
+# Run:  docker compose up --build
+# Stop: docker compose down
+# Logs: docker compose logs -f
+
+services:
+  bydo:
+    build: .          # build image from Dockerfile in this folder
+    ports:
+      - "8000:8000"   # expose FastAPI on port 8000
+    volumes:
+      - ./config.json:/app/config.json:ro   # OpenAI API key — read only
+      - ./jobs:/app/jobs                    # uploaded JD files
+      - ./results:/app/results              # JSON outputs
+      - ./answers:/app/answers              # raw extraction answers
+      - ./normalized_answers:/app/normalized_answers
+      - ./tokens:/app/tokens                # token usage logs

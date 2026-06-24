@@ -1,0 +1,42 @@
+# BYDO Skill Extraction — .dockerignore
+# ----------------------------------------
+# Files and folders to EXCLUDE from the Docker image
+# Same idea as .gitignore but for Docker builds
+
+# Python virtual environment — Docker installs its own via pip
+.venv/
+
+# Python cache — not needed
+__pycache__/
+*.pyc
+
+# Old Streamlit apps — replaced by FastAPI
+upload.py
+app.py
+run.sh
+
+# Frontend libraries — not used
+lib/
+
+# Evaluation scripts — not needed for deployment
+evaluation/
+
+# Archive — old files
+archive/
+
+# Runtime folders — mounted as volumes, not baked in
+jobs/
+results/
+answers/
+normalized_answers/
+tokens/
+
+# Config — contains OpenAI API key, provided by client at runtime
+config.json
+
+# Git
+.git/
+.gitignore
+
+# VS Code
+.vscode/
