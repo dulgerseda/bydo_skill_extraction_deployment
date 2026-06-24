@@ -1,0 +1,32 @@
+Data Analyst — Financial Services
+We are looking for a detail-oriented Data Analyst to join our risk
+analytics team. You will work with large financial datasets, build
+automated reporting pipelines, and support data-driven decision-
+making across departments.
+Requirements:
+- Proficiency in Python programming for general scripting and
+automation tasks.
+- Experience using Python for customer segmentation in retail
+banking data.
+- Strong command of SQL to query and manipulate relational
+databases.
+- Ability to use SQL for building financial risk dashboards from
+transactional data.
+- Hands-on experience with pandas and NumPy for data wrangling.
+- Proficient in Tableau for creating interactive business
+dashboards.
+- Experience applying Tableau for churn analysis visualization in
+subscription services.
+- Knowledge of statistical analysis methods including regression and
+hypothesis testing.
+- Familiarity with machine learning concepts such as classification
+and clustering.
+- Experience with Scikit-learn for credit scoring model development.
+- Ability to work with Git for version control in collaborative
+projects.
+- Strong data storytelling skills to communicate insights to non-
+technical stakeholders.
+- Effective cross-functional collaboration with product, finance,
+and engineering teams.
+- Experience managing ETL pipeline development using Python and
+Airflow.

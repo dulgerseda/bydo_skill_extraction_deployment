@@ -1,0 +1,19 @@
+[
+  {
+    "timestamp": "2026-06-24_103643",
+    "model": "gpt-4o",
+    "jds": [
+      {
+        "jd": "JD_01_Testdocker",
+        "prompt_tokens": 4204,
+        "completion_tokens": 1375,
+        "total_tokens": 5579,
+        "cost_usd": 0.02426
+      }
+    ],
+    "total_prompt_tokens": 4204,
+    "total_completion_tokens": 1375,
+    "total_tokens": 5579,
+    "total_cost_usd": 0.02426
+  }
+]

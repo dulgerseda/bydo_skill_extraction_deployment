@@ -1,0 +1,172 @@
+{
+  "JD_01_Testdocker": {
+    "skills": [
+      {
+        "noun": "Python Programming",
+        "verb": "Program using Python",
+        "esco_form": "use Python",
+        "category": "K",
+        "skill_type": "Tool",
+        "domain": "Software Engineering",
+        "tool": null,
+        "action": null,
+        "source": "Proficiency in Python programming for general scripting and automation tasks."
+      },
+      {
+        "noun": "Python for Customer Segmentation",
+        "verb": "Segment customers using Python",
+        "esco_form": "Apply Python-based customer segmentation",
+        "category": "IPS",
+        "skill_type": "Tool",
+        "domain": "Data Science",
+        "tool": "Python",
+        "action": "Customer Segmentation",
+        "source": "Experience using Python for customer segmentation in retail banking data."
+      },
+      {
+        "noun": "SQL",
+        "verb": "Use SQL",
+        "esco_form": "use SQL",
+        "category": "K",
+        "skill_type": "Tool",
+        "domain": "Data Management",
+        "tool": null,
+        "action": null,
+        "source": "Strong command of SQL to query and manipulate relational databases."
+      },
+      {
+        "noun": "SQL for Financial Risk Dashboards",
+        "verb": "Build financial risk dashboards using SQL",
+        "esco_form": "Apply SQL-based financial risk dashboard development",
+        "category": "IPS",
+        "skill_type": "Tool",
+        "domain": "Finance",
+        "tool": "SQL",
+        "action": "Financial Risk Dashboard Development",
+        "source": "Ability to use SQL for building financial risk dashboards from transactional data."
+      },
+      {
+        "noun": "Pandas",
+        "verb": "Use Pandas",
+        "esco_form": "use Pandas",
+        "category": "K",
+        "skill_type": "Tool",
+        "domain": "Data Analysis",
+        "tool": null,
+        "action": null,
+        "source": "Hands-on experience with pandas and NumPy for data wrangling."
+      },
+      {
+        "noun": "NumPy",
+        "verb": "Use NumPy",
+        "esco_form": "use NumPy",
+        "category": "K",
+        "skill_type": "Tool",
+        "domain": "Data Analysis",
+        "tool": null,
+        "action": null,
+        "source": "Hands-on experience with pandas and NumPy for data wrangling."
+      },
+      {
+        "noun": "Tableau",
+        "verb": "Use Tableau",
+        "esco_form": "use Tableau",
+        "category": "K",
+        "skill_type": "Tool",
+        "domain": "Data Visualization",
+        "tool": null,
+        "action": null,
+        "source": "Proficient in Tableau for creating interactive business dashboards."
+      },
+      {
+        "noun": "Tableau for Churn Analysis Visualization",
+        "verb": "Visualize churn analysis using Tableau",
+        "esco_form": "Apply Tableau-based churn analysis visualization",
+        "category": "IPS",
+        "skill_type": "Tool",
+        "domain": "Data Science",
+        "tool": "Tableau",
+        "action": "Churn Analysis Visualization",
+        "source": "Experience applying Tableau for churn analysis visualization in subscription services."
+      },
+      {
+        "noun": "Statistical Analysis Methods",
+        "verb": "Apply statistical analysis methods",
+        "esco_form": "Apply statistical analysis techniques",
+        "category": "K",
+        "skill_type": "Knowledge",
+        "domain": "Statistics",
+        "tool": null,
+        "action": null,
+        "source": "Knowledge of statistical analysis methods including regression and hypothesis testing."
+      },
+      {
+        "noun": "Machine Learning Concepts",
+        "verb": "Apply machine learning concepts",
+        "esco_form": "Apply machine learning techniques",
+        "category": "K",
+        "skill_type": "Knowledge",
+        "domain": "Artificial Intelligence",
+        "tool": null,
+        "action": null,
+        "source": "Familiarity with machine learning concepts such as classification and clustering."
+      },
+      {
+        "noun": "Scikit-learn for Credit Scoring Model Development",
+        "verb": "Develop credit scoring models using Scikit-learn",
+        "esco_form": "Apply Scikit-learn-based credit scoring model development",
+        "category": "IPS",
+        "skill_type": "Tool",
+        "domain": "Data Science",
+        "tool": "Scikit-learn",
+        "action": "Credit Scoring Model Development",
+        "source": "Experience with Scikit-learn for credit scoring model development."
+      },
+      {
+        "noun": "Git",
+        "verb": "Use Git",
+        "esco_form": "use Git",
+        "category": "K",
+        "skill_type": "Tool",
+        "domain": "Software Engineering",
+        "tool": null,
+        "action": null,
+        "source": "Ability to work with Git for version control in collaborative projects."
+      },
+      {
+        "noun": "Data Storytelling",
+        "verb": "Tell stories with data",
+        "esco_form": "communicate insights",
+        "category": "SF",
+        "skill_type": "Soft Skill",
+        "domain": "Communication",
+        "tool": null,
+        "action": null,
+        "source": "Strong data storytelling skills to communicate insights to non-technical stakeholders."
+      },
+      {
+        "noun": "Cross-Functional Collaboration",
+        "verb": "Collaborate cross-functionally",
+        "esco_form": "collaborate with teams",
+        "category": "SF",
+        "skill_type": "Soft Skill",
+        "domain": "Soft Skills",
+        "tool": null,
+        "action": null,
+        "source": "Effective cross-functional collaboration with product, finance, and engineering teams."
+      },
+      {
+        "noun": "ETL Pipeline Development using Python and Airflow",
+        "verb": "Develop ETL pipelines using Python and Airflow",
+        "esco_form": "Apply Python and Airflow-based ETL pipeline development",
+        "category": "IPS",
+        "skill_type": "Tool",
+        "domain": "Data Engineering",
+        "tool": "Python and Airflow",
+        "action": "ETL Pipeline Development",
+        "source": "Experience managing ETL pipeline development using Python and Airflow."
+      }
+    ],
+    "domain": "Data Science"
+  }
+}
