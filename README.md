@@ -15,8 +15,8 @@ BYDO extracts professional skills from job descriptions (JDs), normalizes them, 
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/dulgerseda/bydo_skill_extraction.git
-cd bydo_skill_extraction
+git clone https://github.com/dulgerseda/bydo_skill_extraction_deployment.git
+cd bydo_skill_extraction_deployment
 ```
 
 ### 2. Create your config.json
