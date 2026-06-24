@@ -1,3 +1,8 @@
 .DS_Store
 .Rhistory
 config.json
+answers/
+jobs/
+results/
+normalized_answers/
+tokens/
