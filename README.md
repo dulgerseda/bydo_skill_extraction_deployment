@@ -1,6 +1,6 @@
 # BYDO — Skill Extraction Pipeline
 
-BYDO extracts professional skills from job descriptions (JDs), normalizes them, and matches them against the ESCO taxonomy using a bi-encoder + cross-encoder reranking pipeline.
+This pipeline extracts professional skills from job descriptions (JDs), normalizes them, and matches them against the ESCO taxonomy using a bi-encoder + cross-encoder reranking pipeline.
 
 ---
 
