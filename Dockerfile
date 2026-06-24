@@ -27,7 +27,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all necessary files and folders into the image
 COPY html_upload.py .
-COPY models.py .
 COPY scripts/ ./scripts/
 COPY data/ ./data/
 COPY prompts/ ./prompts/
