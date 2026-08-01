@@ -1,9 +1,10 @@
 # Skill co-occurrence network: simulation
 
 A demo of the "your skills against the market" idea while the real corpus is
-still two documents. The **company side is real** (every skill extracted into
-`results/`), the **market side is synthetic** (job ads sampled from latent
-roles). Nothing here touches the extraction pipeline.
+still a handful of documents. The **company side is real** (every skill
+extracted into `results/`, currently 85 rows from 6 documents), the **market
+side is synthetic** (job ads sampled from latent roles). Nothing here touches
+the extraction pipeline.
 
 ```bash
 python3 simulation/simulate_market.py --ads 800 --seed 42
@@ -67,7 +68,11 @@ from clean data, they will not find real structure in messy data.
 Each extracted row is resolved to a node in one of four ways:
 
 - **alias**: the same thing as a market skill, so it merges into that node
-  (`Python 3.11` and `Python` become one node, `Dockerfile` folds into `Docker`)
+  (`Python 3.11` and `Python` become one node, `Dockerfile` and
+  `Docker Deployment` fold into `Docker`). The extraction pipeline now strips
+  version numbers and rewrites artefact names itself, so these aliases mostly
+  cover rows extracted before those rules landed. They stay as a safety net,
+  since a corpus always outlives the prompt that produced it.
 - **esco**: has a solid ESCO match, becomes a market skill in the role its
   domain implies
 - **suspect**: ESCO matched something much more specific than the extracted
@@ -97,7 +102,7 @@ skills, so each pair also gets:
 - **hypergeometric p-value**: probability of seeing this much co-occurrence by
   chance given the two skills' frequencies, with Benjamini-Hochberg control at
   FDR 1%. Only the surviving pairs form the **backbone**, which is the graph all
-  later metrics use. Typically about 80% of pairs are discarded, and the ones
+  later metrics use. About three quarters of pairs are discarded, and the ones
   that go are mostly hub skills, exactly as intended.
 
 ### Structure
@@ -150,10 +155,18 @@ so real trend analysis needs the ad's publication date captured as metadata.
 
 ## Reading the current output
 
-With the real 32 extracted rows and 800 generated ads, the company covers 27%
-of market demand, is closest to the Data Engineer and ML Engineer clusters
-(around 40%) and furthest from AI Product / Lead (3%). Almost every gap is one
-hop away, so it is a training story rather than a hiring story. The surplus list
-is instructive in a different way: `docker-compose.yml` and
-`FastAPI Upload Service` are not market skills at all, they are over-extraction
-from a learning journal.
+With the real 85 extracted rows and 800 generated ads, the company covers 31%
+of market demand, is closest to the ML Engineer / MLOps cluster (55%) and to
+Data Scientist (41%), and furthest from AI Product / Lead (3%). Of 47 gaps, 42
+sit one hop from a skill already held and none are two or more hops away, so it
+is a training story rather than a hiring story. The clusters themselves hold up:
+modularity 0.64, and 77% of skills land in the community the generator planted.
+
+The surplus list is instructive in a different way. `FastAPI Upload Service` and
+`Confidence Score Normalization` are not market skills at all, they are
+over-extraction from a learning journal, and the second group of ten is held out
+because ESCO matched something far more specific than the extracted noun. Both
+groups say more about extraction quality than about the market.
+
+These numbers move whenever `results/` changes. Re-run the three scripts above
+to refresh them.

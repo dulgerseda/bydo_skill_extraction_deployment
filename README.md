@@ -178,8 +178,8 @@ newest first. The raw JSON is always one click away from any run.
     "domain": "Data Science",
     "skills": [
       {
-        "noun": "Python Programming",        
-        "verb": "Program using Python",      
+        "noun": "Python",                    
+        "verb": "Use Python",                
         "esco_form": "use Python",           
         "category": "K",                     
         "skill_type": "Tool",                
@@ -188,9 +188,10 @@ newest first. The raw JSON is always one click away from any run.
         "action": null,                      
         "source": "Proficiency in Python...",
         "gap": false,                        
+        "esco_query": "use Python",          
         "esco_match": "Python (computer programming)",
         "match_type": "exactMatch",          
-        "confidence": 0.97,                  
+        "confidence": 0.95,                  
         "decision": "accept"                 
       }
     ]
@@ -207,7 +208,7 @@ newest first. The raw JSON is always one click away from any run.
 | `esco_form` | The model's ESCO-style phrasing, reported for reference |
 | `esco_query` | Derived from the stable fields; this is what ESCO is searched with |
 | `category` | `K` (Knowledge) · `OS` (Operational Skill) · `SF` (Soft Fluency) · `IPS` (Integrated Power-Skill) |
-| `skill_type` | Tool · Method · Concept · Behavior |
+| `skill_type` | `Tool` · `Methodology` · `Knowledge` · `Soft Skill` |
 | `domain` | Professional domain of the skill |
 | `tool` | Tool name if category is IPS, otherwise null |
 | `action` | Domain action if category is IPS, otherwise null |
