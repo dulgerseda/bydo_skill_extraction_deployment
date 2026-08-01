@@ -9,11 +9,13 @@
 #   - Pipeline scripts (extract, normalize, rerank)
 #   - ESCO data files (~27 MB)
 #   - Prompt files
+#   - Offline regression tests
 #
 # What stays outside (volume mount):
 #   - config.json  → OpenAI API key (provided by client)
 #   - jobs/        → uploaded JD files
 #   - results/     → JSON outputs
+#   - cache/       → extraction cache, keyed by document hash
 
 # Base image — pull Python 3.11 (slim = lightweight)
 FROM python:3.11-slim
@@ -30,9 +32,10 @@ COPY html_upload.py .
 COPY scripts/ ./scripts/
 COPY data/ ./data/
 COPY prompts/ ./prompts/
+COPY tests/ ./tests/
 
 # Create runtime folders (pipeline will write files here)
-RUN mkdir -p jobs results answers normalized_answers tokens
+RUN mkdir -p jobs results answers normalized_answers tokens cache/extractions
 
 # Expose port 8000 to the outside world
 EXPOSE 8000

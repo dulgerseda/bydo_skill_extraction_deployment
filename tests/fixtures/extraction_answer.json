@@ -1,0 +1,71 @@
+{
+  "skills": [
+    {
+      "noun": "Docker Deployment",
+      "verb": "Deploy using Docker",
+      "esco_form": "use Docker",
+      "category": "K",
+      "skill_type": "Tool",
+      "domain": "Software Engineering",
+      "tool": null,
+      "action": null,
+      "source": "This week, the BYDO skill extraction pipeline was fully migrated to a Docker-based deployment setup."
+    },
+    {
+      "noun": "FastAPI Upload Service",
+      "verb": "Develop upload services using FastAPI",
+      "esco_form": "Apply FastAPI-based service development",
+      "category": "IPS",
+      "skill_type": "Tool",
+      "domain": "Software Engineering",
+      "tool": "FastAPI",
+      "action": "Service Development",
+      "source": "The Streamlit-based upload interface was replaced with a lightweight FastAPI service."
+    },
+    {
+      "noun": "Pipeline Execution",
+      "verb": "Execute pipelines",
+      "esco_form": "Execute data pipelines",
+      "category": "OS",
+      "skill_type": "Methodology",
+      "domain": "Data Engineering",
+      "tool": null,
+      "action": null,
+      "source": "Runs the full pipeline (extraction → normalization → ESCO reranking) as subprocess calls."
+    },
+    {
+      "noun": "Dockerfile Creation",
+      "verb": "Create Dockerfiles",
+      "esco_form": "use Docker",
+      "category": "K",
+      "skill_type": "Tool",
+      "domain": "Software Engineering",
+      "tool": null,
+      "action": null,
+      "source": "A Dockerfile was written to package the full pipeline into a single container image."
+    },
+    {
+      "noun": "Python",
+      "verb": "Use Python",
+      "esco_form": "use Python",
+      "category": "K",
+      "skill_type": "Tool",
+      "domain": "Software Engineering",
+      "tool": null,
+      "action": null,
+      "source": "The image includes: Python 3.11 runtime and all pip dependencies."
+    },
+    {
+      "noun": "Sentence Transformers",
+      "verb": "Use Sentence Transformers",
+      "esco_form": "use Sentence Transformers",
+      "category": "K",
+      "skill_type": "Tool",
+      "domain": "Natural Language Processing",
+      "tool": null,
+      "action": null,
+      "source": "The image includes: Python 3.11 runtime and all pip dependencies (FastAPI, sentence-transformers, PyTorch, etc.)."
+    }
+  ],
+  "domain": "Natural Language Processing"
+}

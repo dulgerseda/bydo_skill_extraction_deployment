@@ -6,3 +6,7 @@ jobs/
 results/
 normalized_answers/
 tokens/
+docs/
+simulation/out/
+__pycache__/
+cache/

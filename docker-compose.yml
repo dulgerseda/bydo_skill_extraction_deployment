@@ -16,3 +16,4 @@ services:
       - ./answers:/app/answers              # raw extraction answers
       - ./normalized_answers:/app/normalized_answers
       - ./tokens:/app/tokens                # token usage logs
+      - ./cache:/app/cache                  # extraction cache, keyed by document hash

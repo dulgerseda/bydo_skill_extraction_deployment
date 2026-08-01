@@ -44,8 +44,8 @@ def semantic_search(term, embeddings, labels, bi_encoder, top_k=10):
     top_indices = np.argsort(scores)[::-1][:top_k]
     return [(float(scores[i]), labels[i]) for i in top_indices]
 
-def rerank(term, esco_form, candidates, esco_data, cross_encoder):
-    query = f"{term}. {esco_form}"
+def rerank(term, lookup, candidates, esco_data, cross_encoder):
+    query = f"{term}. {lookup}"
     pairs = []
     for _, label in candidates:
         info = esco_data.get(label, {})
@@ -138,12 +138,14 @@ if __name__ == "__main__":
 
             for skill in skills:
                 noun      = skill["noun"]
-                esco_form = skill.get("esco_form", noun)
+                # esco_query is derived deterministically by normalize_answers;
+                # older files without it fall back to the model's own wording
+                lookup    = skill.get("esco_query") or skill.get("esco_form", noun)
 
                 print(f"  -> {noun}")
 
                 candidates1 = semantic_search(noun, embeddings, labels, bi_encoder, top_k=10)
-                candidates2 = semantic_search(esco_form, embeddings, labels, bi_encoder, top_k=10)
+                candidates2 = semantic_search(lookup, embeddings, labels, bi_encoder, top_k=10)
 
                 seen = set()
                 candidates = []
@@ -151,7 +153,7 @@ if __name__ == "__main__":
                     if label not in seen:
                         seen.add(label)
                         candidates.append((score, label))
-                reranked   = rerank(noun, esco_form, candidates, esco_data, cross_encoder)
+                reranked   = rerank(noun, lookup, candidates, esco_data, cross_encoder)
 
                 top_score, top_label = reranked[0]
                 confidence = normalize_score(top_score)

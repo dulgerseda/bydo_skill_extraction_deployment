@@ -11,6 +11,7 @@ results/
 answers/
 normalized_answers/
 tokens/
+cache/
 
 # Config — contains OpenAI API key
 config.json
