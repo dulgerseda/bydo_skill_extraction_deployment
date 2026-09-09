@@ -5,6 +5,7 @@ RERANKING PIPELINE — BYDO Project
 Reads JSON files from normalized_answers/
 Runs semantic search + cross-encoder reranking per skill
 Adds: esco_match, match_type, confidence, decision, gap
+Carries domain and project_activities through unchanged
 Saves each result to results/<JD_name>_<TIMESTAMP>.json
 =============================================================
 """
@@ -78,6 +79,18 @@ def make_decision(confidence):
     else:
         return "emerging"
 
+def read_job(job_data):
+    """One JD entry as (skills, domain, project_activities).
+
+    Old answer files hold a bare skills list where newer ones hold an object, and
+    a job description yields no project activities at all, so both are tolerated.
+    """
+    if isinstance(job_data, list):
+        return job_data, "Unknown", []
+    return (job_data["skills"],
+            job_data.get("domain", "Unknown"),
+            job_data.get("project_activities", []))
+
 def get_latest_files(input_dir: Path, jd_filter: str = None):
     latest_per_jd = {}
     
@@ -123,15 +136,11 @@ if __name__ == "__main__":
         output = {}
 
         for job_id, job_data in answers.items():
-            if isinstance(job_data, list):
-                skills     = job_data
-                job_domain = "Unknown"
-            else:
-                skills     = job_data["skills"]
-                job_domain = job_data.get("domain", "Unknown")
+            skills, job_domain, job_activities = read_job(job_data)
 
             print(f"\n{'='*60}")
-            print(f"  {job_id}  |  domain: {job_domain}  |  {len(skills)} skills")
+            print(f"  {job_id}  |  domain: {job_domain}  |  {len(skills)} skills"
+                  f"  |  {len(job_activities)} activities")
             print(f"{'='*60}")
 
             enriched_skills = []
@@ -175,6 +184,9 @@ if __name__ == "__main__":
 
             output[job_id] = {
                 "domain": job_domain,
+                # carried through unchanged: an activity describes one project and
+                # has no counterpart in ESCO to be matched against
+                "project_activities": job_activities,
                 "skills": enriched_skills
             }
 

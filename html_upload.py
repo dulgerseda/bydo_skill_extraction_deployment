@@ -154,12 +154,15 @@ def split_result_name(stem: str):
 
 
 def iter_jobs(data):
-    """Yield (job_id, domain, skills) — files hold one job, but loop anyway."""
+    """Yield (job_id, domain, skills, activities) — files hold one job, but loop anyway."""
     for job_id, job_data in data.items():
         if isinstance(job_data, list):
-            yield job_id, "Unknown", job_data
+            yield job_id, "Unknown", job_data, []
         else:
-            yield job_id, job_data.get("domain", "Unknown"), job_data.get("skills", [])
+            yield (job_id,
+                   job_data.get("domain", "Unknown"),
+                   job_data.get("skills", []),
+                   job_data.get("project_activities", []))
 
 
 def count_skills(skills):
@@ -191,7 +194,7 @@ def list_results():
                 data = json.load(f)
             skills = []
             domains = []
-            for _, domain, job_skills in iter_jobs(data):
+            for _, domain, job_skills, _ in iter_jobs(data):
                 skills.extend(job_skills)
                 domains.append(domain)
             entry["domain"] = ", ".join(dict.fromkeys(domains)) or "—"
@@ -272,6 +275,11 @@ PAGE_SHELL = """<!DOCTYPE html>
     border-radius: 999px; padding: 4px 12px; font-size: 13px;
   }
   .chip b { font-weight: 650; }
+
+  /* project activities */
+  .activities { margin: 0; padding-left: 20px; font-size: 14px; }
+  .activities li { margin-bottom: 5px; }
+  .activities li:last-child { margin-bottom: 0; }
 
   /* tables */
   table { width: 100%; border-collapse: collapse; background: #fff; font-size: 14px; }
@@ -453,14 +461,42 @@ def render_skill_row(skill):
       </tr>"""
 
 
+def render_activities(activities):
+    """The project activities as the certificate lists them. Empty for a job description."""
+    items = []
+    for a in activities:
+        text = a.get("activity") if isinstance(a, dict) else a
+        if not text:
+            continue
+        # the sentence the activity was read from, on hover, as for a skill
+        source = a.get("source", "") if isinstance(a, dict) else ""
+        items.append(f'      <li title="{esc(source)}">{esc(text)}</li>')
+    if not items:
+        return ""
+
+    bullets = "\n".join(items)
+    return f"""
+  <h2>Project activities</h2>
+  <div class="card">
+    <p class="sub" style="margin:0 0 10px">The activities within the Learning Box
+      included in particular:</p>
+    <ul class="activities">
+{bullets}
+    </ul>
+  </div>
+"""
+
+
 def render_result_page(path: Path, data, banner=""):
     """One results/ file as a page of tables."""
     job_id, when = split_result_name(path.stem)
 
     all_skills = []
+    all_activities = []
     sections = []
-    for name, domain, skills in iter_jobs(data):
+    for name, domain, skills, activities in iter_jobs(data):
         all_skills.extend(skills)
+        all_activities.extend(activities)
         rows = "\n".join(render_skill_row(s) for s in skills)
         sections.append(f"""
   <h2>{esc(name)} <span class="verb" style="font-weight:400">&middot; {esc(domain)}</span></h2>
@@ -492,6 +528,7 @@ def render_result_page(path: Path, data, banner=""):
   <p class="sub">{esc(when)} &middot; <code>results/{esc(path.name)}</code> &middot;
     <a class="link" href="/results/{esc(path.name)}/json">raw JSON</a> &middot;
     <a class="link" href="/results">all results</a></p>
+{render_activities(all_activities)}
 {chips(counts)}{filters}
 {"".join(sections)}
 {FILTER_SCRIPT}"""

@@ -2,24 +2,27 @@
 extract_skills_api.py — BYDO Skill Extraction
 =============================================================
 Reads each job description from jobs/ and extracts structured
-skills using GPT-4o based on the prompt in prompts/.
+skills using GPT-4o based on the prompt in prompts/. Where the
+document reports work that was carried out, the same call also
+returns that work as project_activities, in certificate wording.
 
 Steps:
-1. Loads config (model, prompt, temperature, seed, max_tokens) from config.json
-2. Loads the prompt template named in config
-3. For each JD in jobs/:
+1. Reads the API key from OPENAI_API_KEY, from .env, or from config.json
+2. Loads config (model, prompt, temperature, seed, max_tokens) from config.json
+3. Loads the prompt template named in config
+4. For each JD in jobs/:
    - Injects JD text into the prompt
    - Returns the cached answer if this exact request was made before
    - Otherwise calls the API with a schema-enforced response
    - Saves result to answers/
-4. Logs token usage and cost to tokens/token_usage.json
+5. Logs token usage and cost to tokens/token_usage.json
 
 Reproducibility: the model is pinned to a dated snapshot, temperature
 and seed are fixed, the response shape is enforced by a JSON schema,
 and identical requests are served from cache/extractions/ so the same
 document can never come back with different skills. See README.
 
-Reads from:  jobs/  +  prompts/  +  config.json  +  cache/extractions/
+Reads from:  jobs/  +  prompts/  +  config.json  +  .env  +  cache/extractions/
 Writes to:   answers/  +  tokens/token_usage.json  +  cache/extractions/
 
 Usage:
@@ -47,6 +50,7 @@ args = parser.parse_args()
 # ── Config ────────────────────────────────────────────────────────────────────
 BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
+ENV_PATH    = os.path.join(BASE_DIR, ".env")
 JOBS_DIR    = os.path.join(BASE_DIR, "jobs")
 OUTPUT_DIR  = os.path.join(BASE_DIR, "answers")
 CACHE_DIR   = os.path.join(BASE_DIR, "cache", "extractions")
@@ -57,11 +61,66 @@ TOKEN_LOG_PATH = os.path.join(BASE_DIR, "tokens", "token_usage.json")
 TIMESTAMP = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
 
+# ── API key ───────────────────────────────────────────────────────────────────
+# The key is a secret and the settings are not, so the two are kept apart: the key
+# comes from the environment, config.json holds only what has to stay reproducible.
+
+PLACEHOLDER_KEYS = ("your-api-key-here", "sk-...")
+
+
+def load_dotenv(path):
+    """Read KEY=value lines from .env into the environment, without a dependency.
+
+    Variables that are already set win, so an export in the shell and `docker run
+    -e` still override the file.
+    """
+    if not os.path.isfile(path):
+        return
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            name, _, value = line.partition("=")
+            name = name.strip()
+            if name and not os.environ.get(name):
+                os.environ[name] = value.strip().strip('"').strip("'")
+
+
+def resolve_api_key(config):
+    """The key, and where it came from. Environment first, config.json last.
+
+    config.json is still read so that installations which already keep the key
+    there keep working, but nothing requires it to be written down any more.
+    """
+    candidates = [(os.environ.get("OPENAI_API_KEY"), "OPENAI_API_KEY"),
+                  (config.get("openai_api_key"), "config.json")]
+    for value, origin in candidates:
+        if isinstance(value, str) and value.strip() and value.strip() not in PLACEHOLDER_KEYS:
+            return value.strip(), origin
+
+    print("❌ No OpenAI API key found. Set it in any one of these ways:\n"
+          "\n"
+          "     export OPENAI_API_KEY=sk-...          this shell only\n"
+          "     echo 'OPENAI_API_KEY=sk-...' > .env   every run, Docker included\n"
+          '     "openai_api_key": "sk-..."            in config.json (not recommended)\n'
+          "\n"
+          f"   .env and config.json both belong in {BASE_DIR}\n")
+    exit(1)
+
+
 # ── Load config ───────────────────────────────────────────────────────────────
+if not os.path.isfile(CONFIG_PATH):
+    print(f"❌ No config.json at {CONFIG_PATH}.\n"
+          "   It holds the model and sampling settings; see the README for the contents.\n"
+          "   The API key does not belong in it — put it in the environment instead.\n")
+    exit(1)
+
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = json.load(f)
 
-api_key     = os.environ.get("OPENAI_API_KEY") or config["openai_api_key"]
+load_dotenv(ENV_PATH)
+api_key, KEY_ORIGIN = resolve_api_key(config)
 client      = OpenAI(api_key=api_key)
 MODEL       = config["model"]
 TEMPERATURE = config["temperature"]
@@ -90,9 +149,23 @@ SKILL_SCHEMA = {
     "schema": {
         "type": "object",
         "additionalProperties": False,
-        "required": ["domain", "skills"],
+        "required": ["domain", "project_activities", "skills"],
         "properties": {
             "domain": {"type": "string"},
+            # What the document reports as done, in certificate wording. Empty for a
+            # job description, which advertises a role instead of reporting work.
+            "project_activities": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["activity", "source"],
+                    "properties": {
+                        "activity": {"type": "string"},
+                        "source":   {"type": "string"},
+                    },
+                },
+            },
             "skills": {
                 "type": "array",
                 "items": {
@@ -128,6 +201,7 @@ PROMPT_HASH = hashlib.sha256(prompt_template.encode("utf-8")).hexdigest()[:12]
 CATEGORIES  = SKILL_SCHEMA["schema"]["properties"]["skills"]["items"]["properties"]["category"]["enum"]
 SKILL_TYPES = SKILL_SCHEMA["schema"]["properties"]["skills"]["items"]["properties"]["skill_type"]["enum"]
 REQUIRED    = SKILL_SCHEMA["schema"]["properties"]["skills"]["items"]["required"]
+ACTIVITY_REQUIRED = SKILL_SCHEMA["schema"]["properties"]["project_activities"]["items"]["required"]
 
 
 # ── Answer validation ─────────────────────────────────────────────────────────
@@ -152,6 +226,21 @@ def validate_payload(parsed):
             problems.append(f"{label}: skill_type {skill.get('skill_type')!r} not in {SKILL_TYPES}")
         if skill.get("category") != "IPS" and (skill.get("tool") or skill.get("action")):
             problems.append(f"{label}: tool/action set on a non-IPS skill")
+
+    # An empty list is a legitimate answer, a missing key is not: it means the model
+    # ignored the section rather than judging the document to report no project work.
+    activities = parsed.get("project_activities")
+    if not isinstance(activities, list):
+        problems.append("missing top-level 'project_activities'"
+                        if activities is None else "'project_activities' is not a list")
+    else:
+        for i, activity in enumerate(activities):
+            if not isinstance(activity, dict):
+                problems.append(f"activity {i}: not an object")
+                continue
+            for field in ACTIVITY_REQUIRED:
+                if not isinstance(activity.get(field), str) or not activity[field].strip():
+                    problems.append(f"activity {i}: missing '{field}'")
 
     return problems
 
@@ -215,6 +304,11 @@ if args.print_cache_key:
         print(f"{os.path.splitext(os.path.basename(job_path))[0]} {cache_key(text)}")
     exit(0)
 
+print(f"🔑 API key from {KEY_ORIGIN}")
+if KEY_ORIGIN == "config.json":
+    print("   The key is sitting on disk among your settings. To take it out, move it\n"
+          "   into .env as OPENAI_API_KEY and delete it from config.json.")
+
 print(f"📂 Found {len(job_files)} job file(s). Starting extraction...\n")
 
 run_token_log = []  # ← NEW
@@ -240,7 +334,8 @@ for job_path in job_files:
         parsed = cached["parsed"]
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump({job_stem: parsed}, f, ensure_ascii=False, indent=2)
-        print(f"  ✓ Saved: {output_filename} ({len(parsed.get('skills', []))} skills)")
+        print(f"  ✓ Saved: {output_filename} ({len(parsed.get('skills', []))} skills, "
+              f"{len(parsed.get('project_activities', []))} activities)")
         print(f"  cache hit {key[:12]} from {cached['cached_at']} | cost: $0.0000\n")
         run_token_log.append({
             "jd":        job_stem,
@@ -295,7 +390,8 @@ for job_path in job_files:
             json.dump({job_stem: parsed}, f, ensure_ascii=False, indent=2)
 
         skill_count = len(parsed.get("skills", []))
-        print(f"  ✓ Saved: {output_filename} ({skill_count} skills)")
+        print(f"  ✓ Saved: {output_filename} ({skill_count} skills, "
+              f"{len(parsed.get('project_activities', []))} activities)")
 
         # ── Token tracking ────────────────────────────────────────────────────
         usage = response.usage

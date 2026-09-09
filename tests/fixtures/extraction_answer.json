@@ -67,5 +67,19 @@
       "source": "The image includes: Python 3.11 runtime and all pip dependencies (FastAPI, sentence-transformers, PyTorch, etc.)."
     }
   ],
+  "project_activities": [
+    {
+      "activity": "migration of the skill extraction pipeline to a Docker-based deployment setup",
+      "source": "This week, the BYDO skill extraction pipeline was fully migrated to a Docker-based deployment setup."
+    },
+    {
+      "activity": "replacement of the upload interface with a lightweight web service",
+      "source": "The Streamlit-based upload interface was replaced with a lightweight FastAPI service."
+    },
+    {
+      "activity": "end-to-end testing of the pipeline from a fresh clone of the deployment repository",
+      "source": "The pipeline was tested end-to-end from a fresh clone of the deployment repository."
+    }
+  ],
   "domain": "Natural Language Processing"
 }

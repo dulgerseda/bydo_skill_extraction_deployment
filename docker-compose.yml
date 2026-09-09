@@ -1,5 +1,6 @@
 # BYDO Skill Extraction — Docker Compose
 # ----------------------------------------
+# Key:  export OPENAI_API_KEY=sk-...   (or put the same line in .env)
 # Run:  docker compose up --build
 # Stop: docker compose down
 # Logs: docker compose logs -f
@@ -9,8 +10,12 @@ services:
     build: .          # build image from Dockerfile in this folder
     ports:
       - "8000:8000"   # expose FastAPI on port 8000
+    environment:
+      # Taken from the shell that runs docker compose, or from a .env file next to
+      # this one. Left empty here, so the key is never written into a tracked file.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      - ./config.json:/app/config.json:ro   # OpenAI API key — read only
+      - ./config.json:/app/config.json:ro   # model and sampling settings — read only
       - ./jobs:/app/jobs                    # uploaded JD files
       - ./results:/app/results              # JSON outputs
       - ./answers:/app/answers              # raw extraction answers

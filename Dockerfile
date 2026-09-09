@@ -11,8 +11,9 @@
 #   - Prompt files
 #   - Offline regression tests
 #
-# What stays outside (volume mount):
-#   - config.json  → OpenAI API key (provided by client)
+# What stays outside:
+#   - OPENAI_API_KEY → environment variable, never baked in or mounted
+#   - config.json  → model and sampling settings (volume mount)
 #   - jobs/        → uploaded JD files
 #   - results/     → JSON outputs
 #   - cache/       → extraction cache, keyed by document hash

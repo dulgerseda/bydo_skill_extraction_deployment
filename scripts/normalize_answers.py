@@ -30,6 +30,10 @@ following normalization steps:
 5. Deduplication
    Removes duplicate skills using fuzzy matching (threshold: 80).
 
+6. Project activity tidying
+   Strips bullet characters and trailing full stops from project_activities
+   so they render as certificate bullets. The wording is left untouched.
+
 Reads from:  answers/
 Writes to:   normalized_answers/
 
@@ -108,6 +112,35 @@ def clean_esco_form(skill: dict) -> None:
     esco = re.sub(r'\s+for\s+.+$', '', esco, flags=re.IGNORECASE)
     esco = re.sub(r'\s+(effectively|efficiently|accurately|properly|correctly|successfully)$', '', esco, flags=re.IGNORECASE)
     skill["esco_form"] = esco.strip()
+
+
+def clean_activities(activities):
+    """Put the certificate bullets into the shape the certificate needs.
+
+    They are rendered as a list under a lead-in sentence, so a trailing full stop
+    and a leading bullet character have to go. The wording itself is left alone:
+    an activity is prose about one specific project and has no canonical form to
+    normalise it towards.
+    """
+    if not isinstance(activities, list):
+        return []
+
+    cleaned = []
+    for item in activities:
+        text = item.get("activity", "") if isinstance(item, dict) else item
+        if not isinstance(text, str):
+            continue
+        text = re.sub(r'^[\s•\-–—*]+', '', text).strip()
+        text = re.sub(r'\.\s*$', '', text)
+        if not text:
+            continue
+        if isinstance(item, dict):
+            entry = dict(item)
+            entry["activity"] = text
+        else:
+            entry = {"activity": text, "source": ""}
+        cleaned.append(entry)
+    return cleaned
 
 
 def rewrite_artefacts(skill: dict):
@@ -278,6 +311,9 @@ def normalize_file(input_path: Path, output_path: Path):
             # after skill_type, because the query template depends on it
             build_esco_query(skill)
         jd_value["skills"] = deduplicate_skills(skills)
+
+        if "project_activities" in jd_value:
+            jd_value["project_activities"] = clean_activities(jd_value["project_activities"])
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:

@@ -19,11 +19,32 @@ git clone https://github.com/dulgerseda/bydo_skill_extraction_deployment.git
 cd bydo_skill_extraction_deployment
 ```
 
-### 2. Create your config.json
-Create a `config.json` file in the project root:
+### 2. Provide your API key
+
+The key is read from the environment, so it never has to be written into a file that also
+holds settings. Either export it for the current shell:
+
+```bash
+export OPENAI_API_KEY=sk-...
+```
+
+or write it once into a `.env` file in the project root, which `docker compose` and the
+scripts both pick up on every run:
+
+```bash
+echo 'OPENAI_API_KEY=sk-...' > .env
+```
+
+`.env` is gitignored. An exported variable wins over the file, so you can override it for a
+single run without editing anything.
+
+> Keeping `"openai_api_key"` in `config.json` still works, for installations that already do.
+> The run then says so on startup, and the key sits on disk next to your settings.
+
+### 3. Create your config.json
+Create a `config.json` file in the project root. It holds the settings, not the key:
 ```json
 {
-  "openai_api_key": "your-api-key-here",
   "model": "gpt-4o-2024-11-20",
   "prompt": "prompt_v13.txt",
   "temperature": 0,
@@ -33,11 +54,10 @@ Create a `config.json` file in the project root:
   "max_tokens": 8126
 }
 ```
-> ⚠️ Only replace `your-api-key-here` with your OpenAI API key.
-> Leave the other settings alone: they are what makes the output reproducible.
+> ⚠️ Leave these settings alone: they are what makes the output reproducible.
 > See [Reproducibility](#reproducibility) for what each one does.
 
-### 3. Start the service
+### 4. Start the service
 First time (builds the image — takes 5-10 minutes):
 ```bash
 docker compose up --build
@@ -48,13 +68,13 @@ After first run (starts instantly):
 docker compose up
 ```
 
-### 4. Open in browser
+### 5. Open in browser
 ```
 http://localhost:8000
 ```
 Upload a job description → get a JSON response.
 
-### 5. Stop the service
+### 6. Stop the service
 ```bash
 docker compose down
 ```
@@ -76,9 +96,36 @@ docker compose down
 ## How it works
 
 1. Upload a PDF, DOCX, or TXT job description
-2. Skills are extracted using GPT-4o
+2. Skills are extracted using GPT-4o, together with the project activities the document reports
 3. Skills are normalized and matched against the ESCO taxonomy
 4. The extracted skills are shown as a table, and saved as JSON in `results/`
+
+---
+
+## Where the API key comes from
+
+The key is a secret and the settings are not, so the two are kept apart. Three sources are
+checked, first match wins, and every run prints which one it used:
+
+| Source | Set it with | Use it for |
+|--------|-------------|------------|
+| `OPENAI_API_KEY` in the environment | `export OPENAI_API_KEY=sk-...` | one shell, one run, CI |
+| `.env` in the project root | `echo 'OPENAI_API_KEY=sk-...' > .env` | the normal case, Docker included |
+| `openai_api_key` in `config.json` | editing the file | installations that already do this |
+
+`.env` is loaded into the environment by the script itself, with no extra dependency, and
+`docker compose` reads the same file when it substitutes `${OPENAI_API_KEY}`. An already
+exported variable is never overwritten by the file, so a single run can be redirected to a
+different key without editing anything:
+
+```bash
+OPENAI_API_KEY=sk-other docker compose run --rm --entrypoint python3 bydo \
+  scripts/extract_skills_api.py --file JD_01.txt --no-cache
+```
+
+If no source has a key, the run stops before the first API call and prints the three ways to
+set one. The README placeholder `your-api-key-here` counts as no key, so a half-finished
+setup fails with that message instead of a confusing authentication error.
 
 ---
 
@@ -176,6 +223,12 @@ newest first. The raw JSON is always one click away from any run.
 {
   "JD_01_JobTitle": {
     "domain": "Data Science",
+    "project_activities": [
+      {
+        "activity": "exploratory analysis of internal item and tariff data on Google Cloud",
+        "source": "I ran exploratory SQL queries over the internal item and tariff tables."
+      }
+    ],
     "skills": [
       {
         "noun": "Python",                    
@@ -219,11 +272,38 @@ newest first. The raw JSON is always one click away from any run.
 | `confidence` | Match confidence score (0–1) |
 | `decision` | `accept` · `review` · `emerging` |
 
+### Project activities
+
+A skill is portable: it has to stay true at another employer, so the prompt strips every trace of
+the project out of it. That is the right form for matching against ESCO and the wrong form for a
+certificate, which has to say what the person actually did. `project_activities` is that second
+reading of the same document, in the wording a certificate of participation uses:
+
+> The activities within the Learning Box included in particular:
+> - collection and web scraping of external datasets from customs websites
+> - processing and merging of internal datasets
+> - exploratory SQL analysis of internal item and tariff data on Google Cloud
+
+| Field | Description |
+|-------|-------------|
+| `activity` | One bullet, as it appears on the certificate: noun phrase, lower case, no full stop |
+| `source` | The sentence from the document that evidences it, as for a skill |
+
+The list is aggregated over the whole document, so a learning journal that describes the same
+workstream for eight weeks yields one bullet, not eight. It comes back from the same model call as
+the skills and is carried through normalization and ESCO reranking untouched, because an activity
+describes one project and has no counterpart in the taxonomy to be matched against.
+
+A document that advertises a role rather than reporting work that was carried out — an ordinary job
+description — returns an empty list.
+
 ---
 
 ## Notes
 
 - Processing takes 1-2 minutes per JD, or seconds when the document is already cached
+- The API key is never in the image, in `config.json` or in a tracked file: it is read from
+  `OPENAI_API_KEY`, which `docker compose` takes from your shell or from `.env`
 - `config.json` is never included in the Docker image — always provided externally
 - Results are saved to the `results/` folder
 - `cache/` holds recorded answers and can be deleted at any time; it only costs API calls to rebuild
