@@ -21,6 +21,7 @@ Then open http://localhost:8000 in your browser.
 =============================================================
 """
 
+import hashlib
 import html as html_lib
 import io
 import json
@@ -62,6 +63,31 @@ def get_next_job_number():
         if m:
             numbers.append(int(m.group(1)))
     return max(numbers) + 1 if numbers else 1
+
+
+def document_hash(text):
+    """The identity of a document, independent of the file name it arrived under."""
+    return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
+
+
+def find_existing_job(text):
+    """The JD in jobs/ that already holds this exact document, or None.
+
+    The document is the unit of identity here, not the upload. Uploading the same
+    file again used to mint a new JD, which made one document count as two in
+    everything derived from results/, while the extraction cache handed both of
+    them the same skills. Re-analysing under the existing job id keeps the corpus
+    a set of documents rather than a log of uploads.
+    """
+    wanted = document_hash(text)
+    for path in sorted(JOBS_DIR.glob("JD_*.txt")):
+        try:
+            existing = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if document_hash(existing) == wanted:
+            return path
+    return None
 
 
 def to_pascal_case(text):
@@ -644,13 +670,17 @@ async def upload(file: UploadFile = File(...), job_title: str = Form(""), format
     cleaned_text = clean_text(raw_text)
     title = to_pascal_case(job_title) if job_title.strip() else suggest_title(cleaned_text)
 
-    job_num = get_next_job_number()
-    fname = f"JD_{job_num:02d}_{title}.txt"
-    jd_stem = fname.replace(".txt", "")
+    known = find_existing_job(cleaned_text)
+    if known is not None:
+        fname, jd_stem = known.name, known.stem
+    else:
+        job_num = get_next_job_number()
+        fname = f"JD_{job_num:02d}_{title}.txt"
+        jd_stem = fname.replace(".txt", "")
 
-    save_path = JOBS_DIR / fname
-    with open(save_path, "w", encoding="utf-8") as f:
-        f.write(cleaned_text)
+        save_path = JOBS_DIR / fname
+        with open(save_path, "w", encoding="utf-8") as f:
+            f.write(cleaned_text)
 
     # ── Step 1: extract skills ──────────────────────────────────────
     extract_result = subprocess.run(
@@ -687,6 +717,10 @@ async def upload(file: UploadFile = File(...), job_title: str = Form(""), format
     if wants_json:
         return JSONResponse(content=result_data)
 
-    banner = (f'  <p class="sub" style="margin-bottom:16px">Saved as '
-              f'<code>jobs/{esc(fname)}</code> and analyzed.</p>')
+    if known is None:
+        note = f'Saved as <code>jobs/{esc(fname)}</code> and analyzed.'
+    else:
+        note = (f'This document is already in the corpus as <code>jobs/{esc(fname)}</code>, '
+                f'so it was re-analyzed under that job id rather than added a second time.')
+    banner = f'  <p class="sub" style="margin-bottom:16px">{note}</p>'
     return HTMLResponse(render_result_page(result_path, result_data, banner=banner))

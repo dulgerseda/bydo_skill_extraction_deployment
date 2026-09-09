@@ -100,6 +100,9 @@ docker compose down
 3. Skills are normalized and matched against the ESCO taxonomy
 4. The extracted skills are shown as a table, and saved as JSON in `results/`
 
+Uploading a document that is already in `jobs/` re-analyzes it under the job id it already
+has. See [One document, one job id](#one-document-one-job-id).
+
 ---
 
 ## Where the API key comes from
@@ -127,6 +130,28 @@ OPENAI_API_KEY=sk-other docker compose run --rm --entrypoint python3 bydo \
 If no source has a key, the run stops before the first API call and prints the three ways to
 set one. The README placeholder `your-api-key-here` counts as no key, so a half-finished
 setup fails with that message instead of a confusing authentication error.
+
+---
+
+## One document, one job id
+
+`jobs/` is the corpus: the set of documents the pipeline knows about. Every upload used to
+be numbered, which quietly turned it into a log of uploads instead — the same learning
+journal sent in five times became `JD_04`, `JD_05`, `JD_06`, `JD_07` and `JD_10`, and every
+count taken over `results/` then treated one document as five.
+
+An upload is now matched against the corpus by the SHA-256 of its cleaned text. If that
+document is already there, it is re-analyzed under the job id it already has and no second
+entry appears; the page says so instead of pretending a new document arrived. The extraction
+is a cache hit in that case, so re-analysing costs nothing.
+
+Identity is the content, not the file name or the title given at upload: the same journal
+uploaded as *Student* and as *Learning Journal* is one document. Change a word and it is
+legitimately a different one, with a job id of its own.
+
+> Documents that entered the corpus before this rule are still there in duplicate. Deleting
+> the redundant `jobs/*.txt` and their `results/*.json` is safe — the remaining copy keeps
+> the skills, and the extraction cache means nothing has to be paid for again.
 
 ---
 
@@ -313,5 +338,7 @@ description — returns an empty list.
 - `config.json` is never included in the Docker image — always provided externally
 - Results are saved to the `results/` folder
 - `cache/` holds recorded answers and can be deleted at any time; it only costs API calls to rebuild
-- After changing anything under `scripts/` or `prompts/`, rebuild with `docker compose up --build`,
-  otherwise the container keeps running the version baked into the image
+- Only data folders are mounted, so after changing any code — `scripts/`, `prompts/`,
+  `tests/`, `html_upload.py` — rebuild with `docker compose up --build`, otherwise the
+  container keeps running the version baked into the image. This applies to the test command
+  above too: without a rebuild it runs the suite as it was at build time

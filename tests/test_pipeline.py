@@ -14,6 +14,7 @@ What is pinned here is the behaviour a caller depends on:
   4. confidence thresholds keep their meaning
   5. project activities reach results/ in certificate wording
   6. the API key can be supplied from outside, and its absence is readable
+  7. the same document uploaded twice stays one document in the corpus
 =============================================================
 """
 
@@ -241,6 +242,150 @@ class ProjectActivities(unittest.TestCase):
         # and an old answer file holds a bare skills list
         _, _, got = self.rr.read_job([skill()])
         self.assertEqual(got, [])
+
+
+class DocumentIdentity(unittest.TestCase):
+    """A document uploaded twice is one document, not two.
+
+    jobs/ is meant to be the set of documents in the corpus. Numbering each upload
+    turned it into a log of uploads instead, and every count taken over results/
+    inherited the error.
+    """
+
+    JOURNAL = "Week 1\nI scraped tariff tables from the customs website.\n"
+
+    def setUp(self):
+        sys.path.insert(0, str(REPO))
+        import html_upload
+
+        self.up = html_upload
+        self.jobs = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.jobs, True)
+        original = html_upload.JOBS_DIR
+        html_upload.JOBS_DIR = self.jobs
+        self.addCleanup(setattr, html_upload, "JOBS_DIR", original)
+
+    def put(self, name, text):
+        (self.jobs / name).write_text(text, encoding="utf-8")
+
+    def test_a_document_never_seen_before_is_new(self):
+        self.assertIsNone(self.up.find_existing_job(self.JOURNAL))
+
+    def test_the_same_document_is_recognised(self):
+        self.put("JD_01_LearningJournal.txt", self.JOURNAL)
+        found = self.up.find_existing_job(self.JOURNAL)
+        self.assertIsNotNone(found)
+        self.assertEqual(found.stem, "JD_01_LearningJournal")
+
+    def test_the_title_it_was_uploaded_under_does_not_matter(self):
+        # the same journal was once uploaded as JD_05_Student: identity is the
+        # content, so a new upload under any title must find the existing entry
+        self.put("JD_05_Student.txt", self.JOURNAL)
+        self.assertEqual(self.up.find_existing_job(self.JOURNAL).stem, "JD_05_Student")
+
+    def test_a_reformatted_copy_is_the_same_document(self):
+        self.put("JD_01_LearningJournal.txt", self.JOURNAL)
+        self.assertIsNotNone(self.up.find_existing_job("\n  " + self.JOURNAL + "\n\n  "))
+
+    def test_an_edited_document_is_a_different_one(self):
+        self.put("JD_01_LearningJournal.txt", self.JOURNAL)
+        edited = self.JOURNAL.replace("customs website", "supplier portal")
+        self.assertIsNone(self.up.find_existing_job(edited))
+
+    def test_an_existing_copy_is_chosen_and_always_the_same_one(self):
+        # the corpus predates this rule, so it still holds copies; a further upload
+        # must settle on one of them, and on the same one every time, or the results
+        # for one document would scatter over two job ids
+        copies = ("JD_04_LearningJournal.txt", "JD_07_LearningJournal.txt")
+        for name in copies:
+            self.put(name, self.JOURNAL)
+        chosen = self.up.find_existing_job(self.JOURNAL)
+        self.assertIn(chosen.name, copies)
+        self.assertEqual(self.up.find_existing_job(self.JOURNAL), chosen)
+
+    def test_a_stray_file_in_jobs_is_not_mistaken_for_a_job(self):
+        self.put("notes.txt", self.JOURNAL)
+        self.assertIsNone(self.up.find_existing_job(self.JOURNAL))
+
+    def test_the_corpus_does_not_grow_when_a_duplicate_arrives(self):
+        self.put("JD_01_LearningJournal.txt", self.JOURNAL)
+        before = sorted(p.name for p in self.jobs.glob("JD_*.txt"))
+        self.assertIsNotNone(self.up.find_existing_job(self.JOURNAL))
+        self.assertEqual(sorted(p.name for p in self.jobs.glob("JD_*.txt")), before)
+        self.assertEqual(self.up.get_next_job_number(), 2)
+
+
+class UploadBookkeeping(unittest.TestCase):
+    """The upload endpoint, with the three pipeline steps stubbed out.
+
+    What is under test is the bookkeeping around them — which job id an upload is
+    filed under — not the extraction, which needs a key and a model.
+    """
+
+    JOURNAL = "Week 1\nI scraped tariff tables from the customs website.\n"
+
+    def setUp(self):
+        sys.path.insert(0, str(REPO))
+        import html_upload
+        from fastapi.testclient import TestClient
+
+        self.up = html_upload
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        for name, path in (("JOBS_DIR", tmp / "jobs"), ("RESULTS_DIR", tmp / "results")):
+            path.mkdir()
+            original = getattr(html_upload, name)
+            setattr(html_upload, name, path)
+            self.addCleanup(setattr, html_upload, name, original)
+
+        self.calls = []
+
+        def fake_pipeline(cmd, **kwargs):
+            self.calls.append(cmd)
+            if "normalize_answers.py" in " ".join(cmd):
+                stem = cmd[cmd.index("--file") + 1]
+                stamp = f"20260101_{len(self.calls):06d}"
+                (html_upload.RESULTS_DIR / f"{stem}_{stamp}.json").write_text(
+                    json.dumps({stem: {"domain": "Data Science",
+                                       "project_activities": [],
+                                       "skills": [skill()]}}), encoding="utf-8")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        original_run = html_upload.subprocess.run
+        html_upload.subprocess.run = fake_pipeline
+        self.addCleanup(setattr, html_upload.subprocess, "run", original_run)
+        self.client = TestClient(html_upload.app)
+
+    def upload(self, text, name="journal.txt", fmt="json"):
+        return self.client.post(f"/upload?format={fmt}",
+                                files={"file": (name, text.encode("utf-8"), "text/plain")})
+
+    def jobs(self):
+        return sorted(p.name for p in self.up.JOBS_DIR.glob("JD_*.txt"))
+
+    def test_a_new_document_gets_a_job_id_of_its_own(self):
+        response = self.upload(self.JOURNAL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(self.jobs()), 1)
+        self.assertEqual(list(response.json()), [self.jobs()[0][: -len(".txt")]])
+
+    def test_two_different_documents_get_two_job_ids(self):
+        self.upload(self.JOURNAL)
+        self.upload(self.JOURNAL.replace("customs website", "supplier portal"))
+        self.assertEqual(len(self.jobs()), 2)
+
+    def test_the_same_document_twice_stays_one_job(self):
+        first = self.upload(self.JOURNAL)
+        after_first = self.jobs()
+        second = self.upload(self.JOURNAL, name="a-different-file-name.txt")
+        self.assertEqual(self.jobs(), after_first)
+        self.assertEqual(list(second.json()), list(first.json()))
+
+    def test_the_page_says_a_document_was_already_known(self):
+        self.upload(self.JOURNAL)
+        page = self.upload(self.JOURNAL, fmt="html").text
+        self.assertIn("already in the corpus", page)
+        self.assertNotIn("Saved as", page)
 
 
 class ScriptTree(unittest.TestCase):
