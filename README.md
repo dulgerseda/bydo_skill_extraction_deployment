@@ -105,7 +105,7 @@ docker compose down
 ## Where the API key comes from
 
 The key is a secret and the settings are not, so the two are kept apart. Three sources are
-checked, first match wins, and every run prints which one it used:
+checked, first match wins, and every run prints where the key came from:
 
 | Source | Set it with | Use it for |
 |--------|-------------|------------|
@@ -114,9 +114,10 @@ checked, first match wins, and every run prints which one it used:
 | `openai_api_key` in `config.json` | editing the file | installations that already do this |
 
 `.env` is loaded into the environment by the script itself, with no extra dependency, and
-`docker compose` reads the same file when it substitutes `${OPENAI_API_KEY}`. An already
-exported variable is never overwritten by the file, so a single run can be redirected to a
-different key without editing anything:
+`docker compose` reads the same file when it substitutes `${OPENAI_API_KEY}`. A key from
+`.env` is therefore reported as `API key from OPENAI_API_KEY`: the file is a way of setting
+the variable, not a source of its own. An already exported variable is never overwritten by
+the file, so a single run can be redirected to a different key without editing anything:
 
 ```bash
 OPENAI_API_KEY=sk-other docker compose run --rm --entrypoint python3 bydo \
@@ -144,10 +145,11 @@ deterministic as the API allows. The `system_fingerprint` of every call is writt
 one remaining thing that can move the output on its own.
 
 **A cache, keyed by content.** Every request is hashed over the document text, the model,
-the prompt file, the temperature, the seed and the token limit. If that hash has been seen
-before, the recorded answer is returned and no API call is made. This is what turns
-"the same document gives the same skills" from a hope into a guarantee, and it also means
-re-uploading a document is free and instant.
+the prompt file, the temperature, the seed, the token limit and the `json_mode` and
+`strict_schema` switches: everything that can legitimately move the answer. If that hash
+has been seen before, the recorded answer is returned and no API call is made. This is what
+turns "the same document gives the same skills" from a hope into a guarantee, and it also
+means re-uploading a document is free and instant.
 
 ```bash
 # what a document's cache entry is called
@@ -195,9 +197,13 @@ docker compose run --rm --entrypoint python3 bydo -m unittest discover -s tests 
 
 ## Viewing results
 
-After an upload finishes, the skills are shown as a table with the ESCO match,
-confidence and decision for each one. Use the filter buttons (Accept / Review /
-Emerging / Gaps) and the search box to narrow the list down.
+After an upload finishes, the page opens with the project activities the document reports,
+as a certificate would list them, and hovering one shows the sentence it came from. A
+document that reports no project work has no such block.
+
+Below it the skills are shown as a table with the ESCO match, confidence and decision for
+each one. Use the filter buttons (Accept / Review / Emerging / Gaps) and the search box to
+narrow the list down.
 
 Every past run stays available under **Results** ([http://localhost:8000/results](http://localhost:8000/results)),
 newest first. The raw JSON is always one click away from any run.
@@ -212,8 +218,8 @@ newest first. The raw JSON is always one click away from any run.
 | POST | `/upload` | Upload JD file, runs the pipeline, shows the result table |
 | POST | `/upload?format=json` | Same, but returns the raw JSON (for scripts) |
 | GET | `/results` | All past runs, newest first |
-| GET | `/results/{file}` | One run as a readable table |
-| GET | `/results/{file}/json` | That run's raw JSON |
+| GET | `/results/{filename}` | One run as a readable table |
+| GET | `/results/{filename}/json` | That run's raw JSON |
 
 ---
 
@@ -302,7 +308,7 @@ description — returns an empty list.
 ## Notes
 
 - Processing takes 1-2 minutes per JD, or seconds when the document is already cached
-- The API key is never in the image, in `config.json` or in a tracked file: it is read from
+- The API key is never in the image and never in a tracked file: it is read from
   `OPENAI_API_KEY`, which `docker compose` takes from your shell or from `.env`
 - `config.json` is never included in the Docker image — always provided externally
 - Results are saved to the `results/` folder
